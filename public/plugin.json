@@ -1,0 +1,18 @@
+{
+	"name": "easy-todo",
+	"main": "index.html",
+	"pluginName": "极简待办",
+	"description": "一个简单好用，类似Trello的待办事项管理工具",
+	"author": "aiyakuaile",
+	"homepage": "https://github.com/aiyakuaile/easy-todo",
+	"version": "1.0.0",
+	"logo": "logo.png",
+	"preload": "preload.js",
+	"features": [
+		{
+		  "code": "todo",
+		  "explain": "打开极简待办",
+		  "cmds": ["待办", "todo","任务", "task"]
+		}
+	]
+}
