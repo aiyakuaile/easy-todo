@@ -181,17 +181,22 @@ export const useProjectStore = defineStore('project', {
       const task = this.tasks.find(t => t.id === taskId)
       if (task) {
         const oldStateId = task.stateId
-        // 先从原状态的顺序列表中移除
-        if (this.taskOrders[oldStateId]) {
-          this.taskOrders[oldStateId] = this.taskOrders[oldStateId].filter(id => id !== taskId)
-        }
+        
         // 更新任务状态
         task.stateId = newStateId
         task.updatedAt = new Date().toISOString()
-        // 确保新状态的顺序列表存在
+
+        // 从旧状态的任务顺序中移除
+        if (this.taskOrders[oldStateId]) {
+          this.taskOrders[oldStateId] = this.taskOrders[oldStateId].filter(id => id !== taskId)
+        }
+
+        // 添加到新状态的任务顺序中
         if (!this.taskOrders[newStateId]) {
           this.taskOrders[newStateId] = []
         }
+        this.taskOrders[newStateId].push(taskId)
+
         this.saveState()
       }
     },
@@ -245,10 +250,48 @@ export const useProjectStore = defineStore('project', {
       this.saveState()
     },
 
-    updateProjectInfo(projectId, updates) {
+    updateProjectInfo(projectId, info) {
       const project = this.projects.find(p => p.id === projectId)
       if (project) {
-        Object.assign(project, updates)
+        // 保持已有状态的ID不变，只为新状态生成ID
+        const updatedStates = info.states.map(newState => {
+          // 查找是否存在相同名称的旧状态
+          const existingState = project.states.find(oldState => oldState.name === newState.name)
+          if (existingState) {
+            // 如果是已有状态，保持ID不变，更新其他属性
+            return {
+              ...newState,
+              id: existingState.id
+            }
+          } else {
+            // 如果是新状态，生成新的ID
+            return {
+              ...newState,
+              id: uuidv4()
+            }
+          }
+        })
+
+        // 更新项目基本信息
+        project.name = info.name
+        project.textColor = info.textColor
+        project.bgColor = info.bgColor
+        project.states = updatedStates
+
+        // 为新状态初始化任务顺序列表
+        updatedStates.forEach(state => {
+          if (!this.taskOrders[state.id]) {
+            this.taskOrders[state.id] = []
+          }
+        })
+
+        // 清理已删除状态的任务顺序
+        Object.keys(this.taskOrders).forEach(stateId => {
+          if (!updatedStates.find(state => state.id === stateId)) {
+            delete this.taskOrders[stateId]
+          }
+        })
+
         this.saveState()
       }
     },

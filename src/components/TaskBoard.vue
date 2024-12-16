@@ -334,8 +334,8 @@
         <el-form-item label="优先级" prop="priority">
           <el-select v-model="editForm.priority" placeholder="请选择优先级">
             <el-option label="低" value="低" />
-            <el-option label="中" value="" />
-            <el-option label="" value="高" />
+            <el-option label="中" value="中" />
+            <el-option label="高" value="高" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -382,7 +382,7 @@
         </div>
       </div>
       <template #footer>
-        <el-button @click="archiveDialogVisible = false">消</el-button>
+        <el-button @click="archiveDialogVisible = false">取消</el-button>
         <el-button type="info" @click="archiveProject">确定归档</el-button>
       </template>
     </el-dialog>
@@ -480,7 +480,7 @@ const allTags = computed(() => {
   return Array.from(tags)
 })
 
-// 按状分组的任务
+// 按状态分组的任务
 const stateTasksMap = computed(() => {
   const map = {}
   const currentProject = store.getProject(store.currentProjectId)
@@ -489,18 +489,21 @@ const stateTasksMap = computed(() => {
     const tasks = isArchived ? currentProject.tasks : store.tasks
     const taskOrders = isArchived ? currentProject.taskOrders : store.taskOrders
 
+    // 先获取项目的所有任务
+    const projectTasks = tasks.filter(task => task.projectId === currentProject.id)
+
+    // 按状态分配任务
     currentProject.states.forEach(state => {
-      map[state.id] = []
-      // 如果没有顺序记录，按��认序显示
-      if (!taskOrders[state.id]) {
-        map[state.id] = tasks.filter(task => 
-          task.projectId === currentProject.id && task.stateId === state.id
-        )
-      } else {
-        // 有顺序记录则按记录的顺序显示
+      // 获取该状态下的所有任务
+      const stateTasks = projectTasks.filter(task => task.stateId === state.id)
+      
+      // 如果有顺序记录，使用记录的顺序
+      if (taskOrders[state.id] && taskOrders[state.id].length > 0) {
         map[state.id] = taskOrders[state.id]
-          .map(id => tasks.find(task => task.id === id))
-          .filter(task => task && task.projectId === currentProject.id)
+          .map(id => stateTasks.find(task => task.id === id))
+          .filter(Boolean)
+      } else {
+        map[state.id] = stateTasks
       }
     })
   }
@@ -555,7 +558,7 @@ const hasActiveFilters = computed(() => {
   return currentFilters?.isFiltering || false
 })
 
-// 处拖拽开
+// 处理拖拽开
 const handleDragStart = (evt) => {
   if (hasActiveFilters.value) {
     evt.preventDefault()
@@ -566,7 +569,7 @@ const handleDragStart = (evt) => {
   }
 }
 
-// 处理任务动
+// 处理任务移动
 const handleTaskMove = (evt) => {
   if (hasActiveFilters.value) {
     return
@@ -575,27 +578,12 @@ const handleTaskMove = (evt) => {
   if (evt.added) {
     // 处理跨列拖拽
     const task = evt.added.element
-    const newIndex = evt.added.newIndex
     const newStateId = Object.keys(stateTasksMap.value).find(
       key => stateTasksMap.value[key].includes(task)
     )
-
+    
     // 更新任务状态
     store.updateTaskState(task.id, newStateId)
-    
-    // 获取目列的任务
-    const targetTasks = stateTasksMap.value[newStateId]
-    
-    // 在正确的置插入任务
-    const newOrder = [
-      ...targetTasks.slice(0, newIndex),
-      task,
-      ...targetTasks.slice(newIndex)
-    ].map(t => t.id)
-    
-    // 更新目列的顺序
-    store.taskOrders[newStateId] = newOrder
-    store.saveState()
   } else if (evt.moved) {
     // 处理同列内排序
     const task = evt.moved.element
@@ -779,7 +767,7 @@ watch(() => currentProject.value?.id, (newProjectId, oldProjectId) => {
     // 搜索条件
     filterText.value = ''
     filterPriority.value = ''
-    // 清除上一个项目的筛选条件（如果有）
+    // 清除上一个项目的筛选条件（��果有）
     if (oldProjectId) {
       store.clearProjectFilter(oldProjectId)
     }
