@@ -26,6 +26,7 @@ echarts.use([
   GridComponent,
   CanvasRenderer
 ])
+
 const app = createApp(App)
 app.use(store)
 app.use(ElementPlus, {

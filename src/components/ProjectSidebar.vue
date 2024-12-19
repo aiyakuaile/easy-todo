@@ -199,6 +199,17 @@
             添加状态
           </el-button>
         </el-form-item>
+        <el-form-item label="快速访问" prop="enableQuickAccess">
+          <div class="quick-access-wrapper">
+            <el-switch v-model="form.enableQuickAccess" />
+            <el-tooltip
+              content="开启后将支持从utools输入框输入��目名称，快速打开此项目"
+              placement="right"
+            >
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -256,6 +267,17 @@
             <el-icon><Plus /></el-icon>
             添加状态
           </el-button>
+        </el-form-item>
+        <el-form-item label="快速访问">
+          <div class="quick-access-wrapper">
+            <el-switch v-model="editProjectForm.enableQuickAccess" />
+            <el-tooltip
+              content="开启后将支持从utools输入框输入项目名称，快速打开此项目"
+              placement="right"
+            >
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -327,6 +349,7 @@ import {
   Moon,
   Sunny,
   Monitor,
+  QuestionFilled,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { storage } from '../utils/storage'
@@ -363,6 +386,7 @@ const form = reactive({
   name: '',
   textColor: '#FFFFFF',
   bgColor: '#409EFF',
+  enableQuickAccess: false,
   states: [
     { name: '待办', color: '#909399' },
     { name: '进行中', color: '#409EFF' },
@@ -389,7 +413,7 @@ const greeting = computed(() => {
   return '夜深了'
 })
 
-// 显示创对话框
+// 显示创建对话框
 const showCreateDialog = () => {
   dialogVisible.value = true
 }
@@ -414,6 +438,7 @@ const createProject = async () => {
         name: form.name,
         textColor: form.textColor,
         bgColor: form.bgColor,
+        enableQuickAccess: form.enableQuickAccess,
         states: form.states.map((state, index) => ({
           id: index.toString(),
           ...state,
@@ -424,6 +449,7 @@ const createProject = async () => {
       form.name = ''
       form.textColor = '#FFFFFF'
       form.bgColor = '#409EFF'
+      form.enableQuickAccess = false
       form.states = [
         { name: '待办', color: '#909399' },
         { name: '进行中', color: '#409EFF' },
@@ -441,6 +467,7 @@ const editProjectForm = reactive({
   name: '',
   textColor: '#FFFFFF',
   bgColor: '#409EFF',
+  enableQuickAccess: false,
   states: [
     { name: '待办', color: '#909399' },
     { name: '进行中', color: '#409EFF' },
@@ -457,6 +484,7 @@ const editProject = (project) => {
   editProjectForm.name = project.name
   editProjectForm.textColor = project.textColor || '#FFFFFF'
   editProjectForm.bgColor = project.bgColor || '#409EFF'
+  editProjectForm.enableQuickAccess = Boolean(project.enableQuickAccess)
   editProjectForm.states = project.states.map(state => ({ ...state }))
   editProjectVisible.value = true
 }
@@ -470,6 +498,7 @@ const updateProject = async () => {
         name: editProjectForm.name,
         textColor: editProjectForm.textColor,
         bgColor: editProjectForm.bgColor,
+        enableQuickAccess: editProjectForm.enableQuickAccess,
         states: editProjectForm.states,
       })
       editProjectVisible.value = false
@@ -481,7 +510,7 @@ const updateProject = async () => {
   })
 }
 
-// 删除项目关
+// 删除项目相关
 const deleteProjectVisible = ref(false)
 const projectToDelete = ref(null)
 
@@ -538,7 +567,7 @@ const sortedArchivedProjects = computed(() => {
   })
 })
 
-// 删除归档项目相
+// 删除归档项目相关
 const deleteArchivedProjectVisible = ref(false)
 const archivedProjectToDelete = ref(null)
 
@@ -602,7 +631,7 @@ const updateThemeClass = () => {
   document.documentElement.className = isDark.value ? 'dark' : ''
 }
 
-// 初化主题
+// 初始化主题
 updateThemeClass()
 </script>
 
@@ -1027,5 +1056,27 @@ updateThemeClass()
 .collapsed :deep(.el-dropdown),
 .collapsed :deep(.el-dropdown .el-button) {
   width: 32px;
+}
+
+.help-icon {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.help-icon {
+  margin-left: 8px;
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+  cursor: help;
+}
+
+.help-icon:hover {
+  color: var(--el-color-primary);
+}
+
+.quick-access-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style> 

@@ -9,9 +9,36 @@
 import ProjectSidebar from './components/ProjectSidebar.vue'
 import TaskBoard from './components/TaskBoard.vue'
 import { useProjectStore } from './store/project'
-import { onMounted } from 'vue'
+import { onMounted, onBeforeMount } from 'vue'
 
 const store = useProjectStore()
+
+// 监听插件进入
+onBeforeMount(() => {
+  if (typeof utools !== 'undefined') {
+    utools.onPluginEnter(({ code, type, payload }) => {
+      console.log('Plugin entered:', { code, type, payload })
+
+      if (code.startsWith('project_')) {
+        // 通过快速访问进入，选中指定项目
+        const projectId = code.replace('project_', '')
+        console.log('Selecting project by quick access:', projectId)
+        store.setCurrentProject(projectId)
+      } else if (code === 'todo') {
+        // 普通进入，选中第一个非归档项目（按显示顺序）
+        const sortedProjects = [...store.projects].sort((a, b) => 
+          new Date(b.createdAt) - new Date(a.createdAt)
+        )
+        const firstProject = sortedProjects[0]
+        console.log('Selecting first project on normal entry:', firstProject)
+        if (firstProject) {
+          console.log('Selecting first project:', firstProject.id)
+          store.setCurrentProject(firstProject.id)
+        }
+      }
+    })
+  }
+})
 
 onMounted(() => {
   if (store.projects.length === 0) {

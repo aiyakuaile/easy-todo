@@ -2,6 +2,28 @@ import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { storage } from '../utils/storage'
 
+const isUTools = typeof utools !== 'undefined'
+
+// 设置项目的快速访问功能
+const setProjectFeature = (project) => {
+  if (isUTools && project.enableQuickAccess) {
+    console.log('Setting project feature:', project)
+    utools.setFeature({
+      code: `project_${project.id}`,
+      explain: `打开项目：${project.name}`,
+      cmds: [project.name]
+    })
+  }
+}
+
+// 移除项目的快速访问功能
+const removeProjectFeature = (projectId) => {
+  if (isUTools) {
+    console.log('Removing project feature:', projectId)
+    utools.removeFeature(`project_${projectId}`)
+  }
+}
+
 export const useProjectStore = defineStore('project', {
   state: () => ({
     projects: storage.getItem('projects') || [],
@@ -37,7 +59,7 @@ export const useProjectStore = defineStore('project', {
         icon: 'Document',
         createdAt: new Date().toISOString(),
         states: [
-          { id: uuidv4(), name: '待办', color: '#909399' },
+          { id: uuidv4(), name: '���办', color: '#909399' },
           { id: uuidv4(), name: '进行中', color: '#409EFF' },
           { id: uuidv4(), name: '已完成', color: '#67C23A' },
         ],
@@ -111,8 +133,13 @@ export const useProjectStore = defineStore('project', {
           ...state,
           id: uuidv4(),
         })),
+        enableQuickAccess: project.enableQuickAccess || false
       }
       this.projects.push(newProject)
+
+      // 如果启用了快速访问，添加 Feature
+      setProjectFeature(newProject)
+
       // 为新项目的每个状态初始化任务顺序
       project.states.forEach(state => {
         if (!this.taskOrders[state.id]) {
@@ -127,8 +154,16 @@ export const useProjectStore = defineStore('project', {
     },
 
     setCurrentProject(projectId) {
-      this.currentProjectId = projectId
-      this.saveState()
+      console.log('Setting current project:', projectId)
+      const project = this.getProject(projectId)
+      console.log('Found project:', project)
+      if (project) {
+        this.currentProjectId = projectId
+        this.saveState()
+        console.log('Current project updated:', this.currentProjectId)
+      } else {
+        console.warn('Project not found:', projectId)
+      }
     },
 
     updateProjectStates(projectId, states) {
@@ -247,12 +282,27 @@ export const useProjectStore = defineStore('project', {
       if (this.currentProjectId === projectId) {
         this.currentProjectId = this.projects[0]?.id || ''
       }
+      // 移除项目的快速访问功能
+      removeProjectFeature(projectId)
       this.saveState()
     },
 
     updateProjectInfo(projectId, info) {
       const project = this.projects.find(p => p.id === projectId)
       if (project) {
+        // 如果快速访问设置发生变化，更新 Feature
+        if (project.enableQuickAccess !== info.enableQuickAccess) {
+          if (info.enableQuickAccess) {
+            setProjectFeature({
+              id: project.id,
+              name: info.name,
+              enableQuickAccess: info.enableQuickAccess
+            })
+          } else {
+            removeProjectFeature(project.id)
+          }
+        }
+
         // 保持已有状态的ID不变，只为新状态生成ID
         const updatedStates = info.states.map(newState => {
           // 查找是否存在相同名称的旧状态
@@ -277,6 +327,7 @@ export const useProjectStore = defineStore('project', {
         project.textColor = info.textColor
         project.bgColor = info.bgColor
         project.states = updatedStates
+        project.enableQuickAccess = info.enableQuickAccess
 
         // 为新状态初始化任务顺序列表
         updatedStates.forEach(state => {
@@ -327,6 +378,11 @@ export const useProjectStore = defineStore('project', {
         // 如果归档的是当前项目，重置当前项目ID
         if (this.currentProjectId === projectId) {
           this.currentProjectId = this.projects[0]?.id || ''
+        }
+        
+        // 如果项目启用了快速访问，在归档时移除
+        if (project.enableQuickAccess) {
+          removeProjectFeature(project.id)
         }
         
         this.saveState()
